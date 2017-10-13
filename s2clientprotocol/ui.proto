@@ -1,3 +1,6 @@
+svn: warning: cannot set LC_CTYPE locale
+svn: warning: environment variable LANG is en_US.UTF-8
+svn: warning: please check that your locale name is correct
 
 syntax = "proto2";
 

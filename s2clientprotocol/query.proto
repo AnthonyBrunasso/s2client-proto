@@ -1,10 +1,13 @@
+svn: warning: cannot set LC_CTYPE locale
+svn: warning: environment variable LANG is en_US.UTF-8
+svn: warning: please check that your locale name is correct
 
 syntax = "proto2";
 
 package SC2APIProtocol;
 
-import "s2clientprotocol/common.proto";
-import "s2clientprotocol/error.proto";
+import "common.proto";
+import "error.proto";
 
 message RequestQuery {
   repeated RequestQueryPathing pathing = 1;

@@ -1,17 +1,20 @@
+svn: warning: cannot set LC_CTYPE locale
+svn: warning: environment variable LANG is en_US.UTF-8
+svn: warning: please check that your locale name is correct
 
 syntax = "proto2";
 
 package SC2APIProtocol;
 
-import "s2clientprotocol/common.proto";
-import "s2clientprotocol/data.proto";
-import "s2clientprotocol/debug.proto";
-import "s2clientprotocol/error.proto";
-import "s2clientprotocol/query.proto";
-import "s2clientprotocol/raw.proto";
-import "s2clientprotocol/score.proto";
-import "s2clientprotocol/spatial.proto";
-import "s2clientprotocol/ui.proto";
+import "common.proto";
+import "data.proto";
+import "debug.proto";
+import "error.proto";
+import "query.proto";
+import "raw.proto";
+import "score.proto";
+import "spatial.proto";
+import "ui.proto";
 
 //
 // Notes:
@@ -42,6 +45,7 @@ import "s2clientprotocol/ui.proto";
 // leave_game       | in_game (required when finishing multiplayer)     | launched              |
 // quick_save       | in_game                                           |                       |
 // quick_load       | in_game                                           |                       |
+//                  | ended                                             |                       |
 // quit             | any                                               | quit (not sent)       |
 // game_info        | in_game                                           |                       |
 //                  | in_replay                                         |                       |
@@ -52,6 +56,8 @@ import "s2clientprotocol/ui.proto";
 // step*            | in_game (not available in realtime mode)          | in_game               |
 //                  | in_replay                                         | ended                 |
 // action           | in_game (not available to observers)              |                       |
+// obs_action       | in_game (only for observers)                      |                       |
+//                  | in_replay                                         |                       |
 // data             | in_game                                           |                       |
 //                  | in_replay                                         |                       |
 //                  | ended                                             |                       |
@@ -86,15 +92,16 @@ message Request {
     RequestStartReplay start_replay = 4;        // Start playing a replay.
     RequestLeaveGame leave_game = 5;            // Multiplayer only. Disconnects from a multiplayer game, equivalent to surrender.
 
-    RequestQuickSave quick_save = 6;            // Not implemented. Saves game to an in-memory bookmark.
-    RequestQuickLoad quick_load = 7;            // Not implemented. Loads from an in-memory bookmark.
+    RequestQuickSave quick_save = 6;            // Saves game to an in-memory bookmark.
+    RequestQuickLoad quick_load = 7;            // Loads from an in-memory bookmark.
 
     RequestQuit quit = 8;                       // Terminates the application.
 
     // During Game
     RequestGameInfo game_info = 9;              // Static data about the current game and map.
     RequestObservation observation = 10;        // Snapshot of the current game state.
-    RequestAction action = 11;                  // Executes an action.
+    RequestAction action = 11;                  // Executes an action for a participant.
+    RequestObserverAction obs_action = 21;      // Executes an action for an observer.
     RequestStep step = 12;                      // Advances the game simulation.
     RequestData data = 13;                      // Data about different gameplay elements. May be different for different games.
     RequestQuery query = 14;                    // Additional methods for inspecting game state.
@@ -127,6 +134,7 @@ message Response {
     ResponseGameInfo game_info = 9;
     ResponseObservation observation = 10;
     ResponseAction action = 11;
+    ResponseObserverAction obs_action = 21;
     ResponseStep step = 12;
     ResponseData data = 13;
     ResponseQuery query = 14;
@@ -160,7 +168,7 @@ enum Status {
 message RequestCreateGame {
   oneof Map {
     LocalMap local_map = 1;                         // Local .SC2Map file
-    string battlenet_map_name = 2;                  // Map published to BattleNet
+    string battlenet_map_name = 2;                  // Map published the BattleNet
   }
 
   repeated PlayerSetup player_setup = 3;
@@ -346,6 +354,15 @@ message RequestAction {
 
 message ResponseAction {
    repeated ActionResult result = 1;
+}
+
+//-----------------------------------------------------------------------------
+message RequestObserverAction {
+   repeated ObserverAction actions = 1;
+}
+
+message ResponseObserverAction  {
+
 }
 
 //-----------------------------------------------------------------------------
@@ -573,6 +590,35 @@ message ActionError {
   optional uint64 unit_tag = 1;                             // Only populated when using raw interface.
   optional uint64 ability_id = 2;
   optional ActionResult result = 3;
+}
+
+message ObserverAction {
+  oneof action {
+    ActionObserverPlayerPerspective player_perspective = 1;         // Not implemented
+    ActionObserverCameraMove camera_move = 2;
+    ActionObserverCameraFollowPlayer camera_follow_player = 3;
+    ActionObserverCameraFollowUnits camera_follow_units = 4;        // Not implemented
+  }
+}
+
+message ActionObserverPlayerPerspective {
+  optional uint32 player_id = 1;        // 0 to observe "Everyone"
+}
+
+message ActionObserverCameraMove {
+  optional Point2D world_pos = 1;
+
+  // Distance between camera and terrain. Larger value zooms out camera.
+  // Defaults to standard camera distance if set to 0.
+  optional float distance = 2;
+}
+
+message ActionObserverCameraFollowPlayer {
+  optional uint32 player_id = 1;        // Not implemented. Value must be [1, 15]
+}
+
+message ActionObserverCameraFollowUnits {
+  repeated uint64 unit_tags = 1;
 }
 
 enum Alert {
